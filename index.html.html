@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagramme de perception de la valeur produit</title>
+  <!-- Librairie jsPDF pour l'export PDF (avec repli automatique sur l'impression PDF si hors-ligne) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --grid-line: #e2e8f0;
+      --axis-color: #334155;
+      --success: #059669;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    input {
+      user-select: text;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* En-tête */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #0f172a;
+    }
+
+    .title-block p {
+      margin: 2px 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+
+    .btn-success:hover {
+      background: #047857;
+      border-color: #047857;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* Mise en page principale */
+    .workspace {
+      max-width: 1440px;
+      margin: 18px auto;
+      padding: 0 18px 30px;
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .student-fields {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--grid-line);
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.88rem;
+      font-family: inherit;
+    }
+
+    .field-group input:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.2);
+      border-color: var(--primary);
+    }
+
+    /* Réserve des logos */
+    .dock-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .logo-dock {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .brand-tile {
+      border: 1px solid var(--grid-line);
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: grab;
+      transition: transform 0.12s, box-shadow 0.12s, opacity 0.15s;
+      touch-action: none;
+    }
+
+    .brand-tile:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      background: #fff;
+      border-color: #94a3b8;
+    }
+
+    .brand-tile.placed {
+      opacity: 0.38;
+      border-style: dashed;
+    }
+
+    .brand-tile svg {
+      width: 40px;
+      height: 40px;
+      pointer-events: none;
+    }
+
+    .brand-tile span {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text);
+      line-height: 1.1;
+      pointer-events: none;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 3px;
+    }
+
+    .options-row {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--grid-line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    .options-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* Zone du diagramme */
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px 24px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .chart-header h2 {
+      margin: 0;
+      font-size: 1.08rem;
+    }
+
+    .placed-counter {
+      font-size: 0.82rem;
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      padding: 26px 24px 44px 54px;
+      background: #ffffff;
+      border-radius: 10px;
+    }
+
+    /* Étiquettes des axes */
+    .axis-title-y {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--axis-color);
+      white-space: nowrap;
+    }
+
+    .axis-title-x {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--axis-color);
+      white-space: nowrap;
+    }
+
+    /* Surface de la carte */
+    .map-area {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      min-height: 440px;
+      max-height: 680px;
+      border: 1.5px solid #94a3b8;
+      background-color: #ffffff;
+      overflow: visible;
+    }
+
+    .grid-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Labels des quadrants */
+    .quadrant-label {
+      position: absolute;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: rgba(100, 116, 139, 0.55);
+      pointer-events: none;
+      padding: 8px 10px;
+      max-width: 44%;
+    }
+
+    .q-tl { top: 0; left: 0; text-align: left; }
+    .q-tr { top: 0; right: 0; text-align: right; }
+    .q-bl { bottom: 0; left: 0; text-align: left; }
+    .q-br { bottom: 0; right: 0; text-align: right; }
+
+    /* Graduations 0..10 */
+    .ticks-x, .ticks-y {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .ticks-x {
+      left: 0;
+      right: 0;
+      bottom: -22px;
+      height: 18px;
+    }
+
+    .ticks-y {
+      top: 0;
+      bottom: 0;
+      left: -28px;
+      width: 24px;
+    }
+
+    .tick-label {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .ticks-x .tick-label {
+      transform: translateX(-50%);
+    }
+
+    .ticks-y .tick-label {
+      transform: translateY(50%);
+      right: 4px;
+    }
+
+    /* Éléments placés sur la carte */
+    .placed-item {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: grab;
+      z-index: 10;
+      touch-action: none;
+      transition: filter 0.12s;
+    }
+
+    .placed-item:hover {
+      z-index: 30;
+    }
+
+    .placed-item.dragging {
+      cursor: grabbing;
+      z-index: 50;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.22));
+    }
+
+    .placed-badge {
+      width: 48px;
+      height: 48px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+      position: relative;
+    }
+
+    .placed-item:hover .placed-badge,
+    .placed-item.dragging .placed-badge {
+      border-color: var(--primary);
+    }
+
+    .placed-badge svg {
+      width: 38px;
+      height: 38px;
+      pointer-events: none;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+
+    .placed-item:hover .remove-btn {
+      display: flex;
+    }
+
+    .placed-caption {
+      margin-top: 3px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      pointer-events: none;
+    }
+
+    .placed-coords {
+      font-weight: 500;
+      color: var(--primary);
+      margin-left: 3px;
+    }
+
+    /* Ghost pendant le drag */
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%) scale(1.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.25));
+    }
+
+    .coord-pill {
+      margin-top: 4px;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    /* Style impression (fallback PDF natif) */
+    @media print {
+      header .toolbar,
+      .left-panel {
+        display: none !important;
+      }
+      .workspace {
+        display: block;
+        margin: 0;
+        padding: 0;
+      }
+      .chart-card {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .remove-btn {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-block">
+      <h1>Diagramme de perception de la valeur produit</h1>
+      <p>Glissez-déposez les marques et votre propre produit sur la carte (Qualité : 0 à 10 | Prix : 0 à 10).</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-danger" id="btn-reset" title="Vider le diagramme">↺ Réinitialiser</button>
+      <button class="btn btn-primary" id="btn-png">🖼️ Télécharger en Image (PNG)</button>
+      <button class="btn btn-success" id="btn-pdf">📄 Télécharger en PDF</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Colonne de gauche : nom élève + logos -->
+    <aside class="panel left-panel">
+      <div class="student-fields">
+        <div class="field-group">
+          <label for="student-name">Nom / Prénom de l'élève (apparaîtra sur l'export)</label>
+          <input type="text" id="student-name" placeholder="Ex : Camille Martin - 1ère STMG" />
+        </div>
+      </div>
+
+      <h2>
+        <span>Marques &amp; Produits</span>
+        <span style="font-size:0.75rem; color:var(--muted); font-weight:500;">Glisser sur la carte</span>
+      </h2>
+
+      <p class="dock-hint">Maintenez et glissez un logo dans le diagramme. Survolez un logo placé pour le retirer (×).</p>
+
+      <div class="logo-dock" id="logo-dock"></div>
+
+      <div class="options-row">
+        <label>
+          <input type="checkbox" id="opt-snap" />
+          Aimanter sur la grille (pas de 0,5)
+        </label>
+        <label>
+          <input type="checkbox" id="opt-coords" checked />
+          Afficher les coordonnées (Q ; P)
+        </label>
+      </div>
+    </aside>
+
+    <!-- Colonne de droite : Diagramme en croix -->
+    <section class="chart-card">
+      <div class="chart-header">
+        <h2>Carte perceptuelle : Qualité vs Prix</h2>
+        <span class="placed-counter" id="placed-counter">0 / 16 positionnés</span>
+      </div>
+
+      <div class="chart-wrapper">
+        <div class="axis-title-y">PRIX (0 à 10) ↑</div>
+        <div class="axis-title-x">QUALITÉ PERÇUE (0 à 10) →</div>
+
+        <div class="map-area" id="map-area">
+          <!-- Grille SVG (0 à 10 + croix centrale en 5,5) -->
+          <svg class="grid-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+            <!-- Quadrants subtils -->
+            <rect x="0" y="0" width="500" height="500" fill="#fffbeb" fill-opacity="0.35" />
+            <rect x="500" y="0" width="500" height="500" fill="#eff6ff" fill-opacity="0.35" />
+            <rect x="0" y="500" width="500" height="500" fill="#f8fafc" fill-opacity="0.55" />
+            <rect x="500" y="500" width="500" height="500" fill="#ecfdf5" fill-opacity="0.4" />
+
+            <!-- Lignes de grille 1..9 -->
+            <g stroke="#e2e8f0" stroke-width="1.5">
+              <line x1="100" y1="0" x2="100" y2="1000" />
+              <line x1="200" y1="0" x2="200" y2="1000" />
+              <line x1="300" y1="0" x2="300" y2="1000" />
+              <line x1="400" y1="0" x2="400" y2="1000" />
+              <line x1="600" y1="0" x2="600" y2="1000" />
+              <line x1="700" y1="0" x2="700" y2="1000" />
+              <line x1="800" y1="0" x2="800" y2="1000" />
+              <line x1="900" y1="0" x2="900" y2="1000" />
+
+              <line x1="0" y1="100" x2="1000" y2="100" />
+              <line x1="0" y1="200" x2="1000" y2="200" />
+              <line x1="0" y1="300" x2="1000" y2="300" />
+              <line x1="0" y1="400" x2="1000" y2="400" />
+              <line x1="0" y1="600" x2="1000" y2="600" />
+              <line x1="0" y1="700" x2="1000" y2="700" />
+              <line x1="0" y1="800" x2="1000" y2="800" />
+              <line x1="0" y1="900" x2="1000" y2="900" />
+            </g>
+
+            <!-- Croix centrale à (5, 5) -->
+            <line x1="500" y1="0" x2="500" y2="1000" stroke="#334155" stroke-width="3" />
+            <line x1="0" y1="500" x2="1000" y2="500" stroke="#334155" stroke-width="3" />
+          </svg>
+
+          <!-- Noms des 4 zones -->
+          <div class="quadrant-label q-tl">Prix élevé / Faible qualité</div>
+          <div class="quadrant-label q-tr">Prix élevé / Haute qualité (Luxe &amp; Premium)</div>
+          <div class="quadrant-label q-bl">Bas prix / Faible qualité (Low-cost)</div>
+          <div class="quadrant-label q-br">Bas prix / Haute qualité (Bon rapport Q/P)</div>
+
+          <!-- Graduations numériques 0..10 -->
+          <div class="ticks-x" id="ticks-x"></div>
+          <div class="ticks-y" id="ticks-y"></div>
+
+          <!-- Conteneur des logos placés -->
+          <div id="placed-layer"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. CATALOGUE DES 15 MARQUES + "Mon Produit ★"
+    // =========================================================================
+    const brands = [
+      {
+        id: 'lidl',
+        name: 'Lidl',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#0050aa"/>
+          <circle cx="32" cy="32" r="24" fill="#fff000" stroke="#e60a14" stroke-width="3.5"/>
+          <text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="17" fill="#0050aa">LIDL</text>
+        </svg>`
+      },
+      {
+        id: 'shein',
+        name: 'Shein',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#111111"/>
+          <text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="14" letter-spacing="1.5" fill="#ffffff">SHEIN</text>
+        </svg>`
+      },
+      {
+        id: 'bic',
+        name: 'Bic',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#f58220"/>
+          <circle cx="20" cy="24" r="5" fill="#111"/>
+          <path d="M13 42 L20 29 L27 42 Z" fill="#111"/>
+          <text x="43" y="39" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="18" fill="#111">BIC</text>
+        </svg>`
+      },
+      {
+        id: 'mcdonalds',
+        name: "McDonald's",
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#da291c"/>
+          <path d="M14 48 C14 20, 29 20, 32 42 C35 20, 50 20, 50 48" fill="none" stroke="#ffc72c" stroke-width="6.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        id: 'ikea',
+        name: 'IKEA',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#0058a3"/>
+          <ellipse cx="32" cy="32" rx="26" ry="15" fill="#ffdb00"/>
+          <text x="32" y="37" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="15" fill="#0058a3">IKEA</text>
+        </svg>`
+      },
+      {
+        id: 'decathlon',
+        name: 'Decathlon',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#0082c3"/>
+          <text x="32" y="36" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="9.5" letter-spacing="0.3" fill="#ffffff">DECATHLON</text>
+        </svg>`
+      },
+      {
+        id: 'cocacola',
+        name: 'Coca-Cola',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#f40009"/>
+          <path d="M10 42 Q32 34 54 42" fill="none" stroke="#fff" stroke-width="2.5" opacity="0.85"/>
+          <text x="32" y="34" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="bold" font-size="12.5" fill="#ffffff">Coca-Cola</text>
+        </svg>`
+      },
+      {
+        id: 'zara',
+        name: 'Zara',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#ffffff" stroke="#111" stroke-width="2"/>
+          <text x="32" y="38" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="17" letter-spacing="2" fill="#111111">ZARA</text>
+        </svg>`
+      },
+      {
+        id: 'nike',
+        name: 'Nike',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#18181b"/>
+          <path d="M14 36 C12 42, 18 46, 26 42 L54 22 L24 35 C19 37, 16 34, 18 28 C16 30, 14 33, 14 36 Z" fill="#ffffff"/>
+        </svg>`
+      },
+      {
+        id: 'samsung',
+        name: 'Samsung',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+          <ellipse cx="32" cy="32" rx="27" ry="14" transform="rotate(-10 32 32)" fill="#1428a0"/>
+          <text x="32" y="35.5" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="9.5" letter-spacing="0.5" fill="#ffffff">SAMSUNG</text>
+        </svg>`
+      },
+      {
+        id: 'apple',
+        name: 'Apple',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+          <path d="M33 21 C34 17, 38 14, 41 14 C41 18, 37 21, 33 21 Z" fill="#1e293b"/>
+          <path d="M43 34 C43 29, 46 27, 47 26 C44 23, 40 22, 38 22 C35 22, 33 24, 32 24 C30 24, 28 22, 25 22 C21 22, 17 25, 17 32 C17 39, 22 49, 26 49 C28 49, 30 47, 32 47 C34 47, 36 49, 38 49 C42 49, 46 41, 47 39 C44 38, 43 36, 43 34 Z" fill="#1e293b"/>
+        </svg>`
+      },
+      {
+        id: 'tesla',
+        name: 'Tesla',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#cc0000"/>
+          <path d="M16 20 Q32 15 48 20 L46 24 Q32 20 18 24 Z" fill="#ffffff"/>
+          <path d="M23 23 L41 23 L35 27 L32 49 L29 27 Z" fill="#ffffff"/>
+        </svg>`
+      },
+      {
+        id: 'mercedes',
+        name: 'Mercedes',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#0f172a"/>
+          <circle cx="32" cy="32" r="21" fill="none" stroke="#e2e8f0" stroke-width="2.8"/>
+          <polygon points="32,12 35,31 32,34 29,31" fill="#e2e8f0"/>
+          <polygon points="15,43 30,31 32,34 28,37" fill="#e2e8f0"/>
+          <polygon points="49,43 36,37 32,34 34,31" fill="#e2e8f0"/>
+        </svg>`
+      },
+      {
+        id: 'lv',
+        name: 'Louis Vuitton',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#452c1e"/>
+          <text x="27" y="40" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="24" fill="#d4af37">L</text>
+          <text x="38" y="45" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="24" fill="#e5c158">V</text>
+        </svg>`
+      },
+      {
+        id: 'rolex',
+        name: 'Rolex',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="12" fill="#006039"/>
+          <path d="M18 36 L14 22 L23 29 L32 18 L41 29 L50 22 L46 36 Z" fill="#d4af37"/>
+          <rect x="18" y="38" width="28" height="4" rx="2" fill="#d4af37"/>
+          <text x="32" y="53" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" letter-spacing="1.2" fill="#d4af37">ROLEX</text>
+        </svg>`
+      },
+      {
+        id: 'monproduit',
+        name: 'Mon Produit ★',
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#2563eb"/>
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="4 2"/>
+          <text x="32" y="41" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="26" fill="#ffffff">★</text>
+        </svg>`
+      }
+    ];
+
+    // =========================================================================
+    // 2. ÉTAT DE L'APPLICATION
+    // =========================================================================
+    const placedPositions = new Map();
+
+    const dockEl = document.getElementById('logo-dock');
+    const mapEl = document.getElementById('map-area');
+    const placedLayerEl = document.getElementById('placed-layer');
+    const counterEl = document.getElementById('placed-counter');
+    const optSnapEl = document.getElementById('opt-snap');
+    const optCoordsEl = document.getElementById('opt-coords');
+
+    // Générer les graduations 0 à 10
+    function initTicks() {
+      const ticksX = document.getElementById('ticks-x');
+      const ticksY = document.getElementById('ticks-y');
+      for (let i = 0; i <= 10; i++) {
+        const tx = document.createElement('span');
+        tx.className = 'tick-label';
+        tx.style.left = `${i * 10}%`;
+        tx.textContent = i;
+        if (i === 5) tx.style.color = '#0f172a';
+        ticksX.appendChild(tx);
+
+        const ty = document.createElement('span');
+        ty.className = 'tick-label';
+        ty.style.bottom = `${i * 10}%`;
+        ty.textContent = i;
+        if (i === 5) ty.style.color = '#0f172a';
+        ticksY.appendChild(ty);
+      }
+    }
+
+    // =========================================================================
+    // 3. RENDU DE LA RÉSERVE ET DES ÉLÉMENTS PLACÉS
+    // =========================================================================
+    function renderDock() {
+      dockEl.innerHTML = '';
+      brands.forEach((b) => {
+        const tile = document.createElement('div');
+        tile.className = 'brand-tile' + (placedPositions.has(b.id) ? ' placed' : '');
+        tile.dataset.brandId = b.id;
+        tile.innerHTML = `${b.svg}<span>${escapeHtml(b.name)}</span>`;
+        tile.addEventListener('pointerdown', (e) => startDrag(e, b.id, false));
+        dockEl.appendChild(tile);
+      });
+    }
+
+    function renderPlaced() {
+      placedLayerEl.innerHTML = '';
+      const showCoords = optCoordsEl.checked;
+
+      placedPositions.forEach((pos, id) => {
+        const brand = brands.find((b) => b.id === id);
+        if (!brand) return;
+
+        const item = document.createElement('div');
+        item.className = 'placed-item';
+        item.dataset.brandId = id;
+        item.style.left = `${pos.quality * 10}%`;
+        item.style.bottom = `${pos.price * 10}%`;
+        item.style.transform = 'translate(-50%, 50%)';
+
+        const badge = document.createElement('div');
+        badge.className = 'placed-badge';
+        badge.innerHTML = brand.svg;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.title = 'Retirer du diagramme';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+        });
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          placedPositions.delete(id);
+          renderAll();
+        });
+
+        badge.appendChild(removeBtn);
+        item.appendChild(badge);
+
+        const caption = document.createElement('div');
+        caption.className = 'placed-caption';
+        caption.innerHTML = `${escapeHtml(brand.name)}` +
+          (showCoords ? `<span class="placed-coords">(${pos.quality.toFixed(1)} ; ${pos.price.toFixed(1)})</span>` : '');
+        item.appendChild(caption);
+
+        item.addEventListener('pointerdown', (e) => startDrag(e, id, true));
+        placedLayerEl.appendChild(item);
+      });
+
+      counterEl.textContent = `${placedPositions.size} / ${brands.length} positionnés`;
+    }
+
+    function renderAll() {
+      renderDock();
+      renderPlaced();
+    }
+
+    // =========================================================================
+    // 4. SYSTÈME DE GLISSER-DÉPOSER (SOURIS + TACTILE)
+    // =========================================================================
+    let dragState = null;
+
+    function startDrag(e, brandId, fromMap) {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+
+      const brand = brands.find((b) => b.id === brandId);
+      if (!brand) return;
+
+      const ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      ghost.innerHTML = `
+        <div class="placed-badge" style="border-color: var(--primary);">${brand.svg}</div>
+        <div class="coord-pill" id="ghost-pill">${escapeHtml(brand.name)}</div>
+      `;
+      document.body.appendChild(ghost);
+
+      dragState = {
+        brandId,
+        brandName: brand.name,
+        fromMap,
+        ghost,
+        pill: ghost.querySelector('#ghost-pill')
+      };
+
+      moveGhost(e.clientX, e.clientY);
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    }
+
+    function getMapCoords(clientX, clientY) {
+      const rect = mapEl.getBoundingClientRect();
+      const inside =
+        clientX >= rect.left - 25 &&
+        clientX <= rect.right + 25 &&
+        clientY >= rect.top - 25 &&
+        clientY <= rect.bottom + 25;
+
+      let rawQ = ((clientX - rect.left) / rect.width) * 10;
+      let rawP = ((rect.bottom - clientY) / rect.height) * 10;
+
+      rawQ = Math.max(0, Math.min(10, rawQ));
+      rawP = Math.max(0, Math.min(10, rawP));
+
+      if (optSnapEl.checked) {
+        rawQ = Math.round(rawQ * 2) / 2;
+        rawP = Math.round(rawP * 2) / 2;
+      } else {
+        rawQ = Math.round(rawQ * 10) / 10;
+        rawP = Math.round(rawP * 10) / 10;
+      }
+
+      return { inside, quality: rawQ, price: rawP };
+    }
+
+    function moveGhost(clientX, clientY) {
+      if (!dragState) return;
+      dragState.ghost.style.left = `${clientX}px`;
+      dragState.ghost.style.top = `${clientY}px`;
+
+      const coords = getMapCoords(clientX, clientY);
+      if (coords.inside) {
+        dragState.pill.textContent = `${dragState.brandName} • Q: ${coords.quality.toFixed(1)} | P: ${coords.price.toFixed(1)}`;
+        dragState.pill.style.background = '#2563eb';
+      } else {
+        dragState.pill.textContent = dragState.fromMap ? 'Relâcher pour retirer' : 'Déposer dans le cadre';
+        dragState.pill.style.background = '#475569';
+      }
+    }
+
+    function onPointerMove(e) {
+      moveGhost(e.clientX, e.clientY);
+    }
+
+    function onPointerUp(e) {
+      if (!dragState) return;
+
+      const coords = getMapCoords(e.clientX, e.clientY);
+      if (coords.inside) {
+        placedPositions.set(dragState.brandId, {
+          quality: coords.quality,
+          price: coords.price
+        });
+      } else if (dragState.fromMap) {
+        placedPositions.delete(dragState.brandId);
+      }
+
+      dragState.ghost.remove();
+      dragState = null;
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      renderAll();
+    }
+
+    // =========================================================================
+    // 5. ACTIONS UTILISATEUR (RESET, OPTIONS)
+    // =========================================================================
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      if (placedPositions.size === 0) return;
+      if (confirm('Voulez-vous retirer toutes les marques du diagramme ?')) {
+        placedPositions.clear();
+        renderAll();
+      }
+    });
+
+    optCoordsEl.addEventListener('change', renderPlaced);
+
+    // =========================================================================
+    // 6. EXPORT HAUTE RÉSOLUTION (PNG & PDF) VIA CANVAS NATIF
+    // =========================================================================
+    function svgToImage(svgString) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = (err) => {
+          URL.revokeObjectURL(url);
+          reject(err);
+        };
+        img.src = url;
+      });
+    }
+
+    async function renderExportCanvas() {
+      const width = 1600;
+      const height = 1040;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Fond blanc
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // En-tête du document
+      const studentName = document.getElementById('student-name').value.trim();
+      const today = new Date().toLocaleDateString('fr-FR');
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 30px Segoe UI, Arial, sans-serif';
+      ctx.fillText('Diagramme de perception de la valeur produit', 70, 56);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '18px Segoe UI, Arial, sans-serif';
+      const metaText = (studentName ? `Élève : ${studentName}   •   ` : '') + `Date : ${today}`;
+      ctx.fillText(metaText, 70, 88);
+
+      // Zone du graphique
+      const mapX = 110;
+      const mapY = 120;
+      const mapW = 1380;
+      const mapH = 820;
+
+      // Fonds des quadrants
+      ctx.fillStyle = 'rgba(255, 251, 235, 0.5)';
+      ctx.fillRect(mapX, mapY, mapW / 2, mapH / 2);
+      ctx.fillStyle = 'rgba(239, 246, 255, 0.5)';
+      ctx.fillRect(mapX + mapW / 2, mapY, mapW / 2, mapH / 2);
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.7)';
+      ctx.fillRect(mapX, mapY + mapH / 2, mapW / 2, mapH / 2);
+      ctx.fillStyle = 'rgba(236, 253, 245, 0.5)';
+      ctx.fillRect(mapX + mapW / 2, mapY + mapH / 2, mapW / 2, mapH / 2);
+
+      // Lignes de grille 0..10
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i <= 10; i++) {
+        const x = mapX + (i / 10) * mapW;
+        const y = mapY + mapH - (i / 10) * mapH;
+        ctx.beginPath();
+        ctx.moveTo(x, mapY);
+        ctx.lineTo(x, mapY + mapH);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(mapX, y);
+        ctx.lineTo(mapX + mapW, y);
+        ctx.stroke();
+
+        // Graduations
+        ctx.fillStyle = i === 5 ? '#0f172a' : '#64748b';
+        ctx.font = (i === 5 ? 'bold ' : '') + '15px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(i), x, mapY + mapH + 24);
+        ctx.textAlign = 'right';
+        ctx.fillText(String(i), mapX - 12, y + 5);
+      }
+
+      // Bordure externe
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(mapX, mapY, mapW, mapH);
+
+      // Croix centrale (5 ; 5)
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(mapX + mapW / 2, mapY);
+      ctx.lineTo(mapX + mapW / 2, mapY + mapH);
+      ctx.moveTo(mapX, mapY + mapH / 2);
+      ctx.lineTo(mapX + mapW, mapY + mapH / 2);
+      ctx.stroke();
+
+      // Labels des quadrants
+      ctx.fillStyle = 'rgba(100, 116, 139, 0.7)';
+      ctx.font = 'bold 14px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('PRIX ÉLEVÉ / FAIBLE QUALITÉ', mapX + 14, mapY + 24);
+      ctx.fillText('BAS PRIX / FAIBLE QUALITÉ (LOW-COST)', mapX + 14, mapY + mapH - 14);
+      ctx.textAlign = 'right';
+      ctx.fillText('PRIX ÉLEVÉ / HAUTE QUALITÉ (LUXE & PREMIUM)', mapX + mapW - 14, mapY + 24);
+      ctx.fillText('BAS PRIX / HAUTE QUALITÉ (BON RAPPORT Q/P)', mapX + mapW - 14, mapY + mapH - 14);
+
+      // Titres des axes
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 18px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('QUALITÉ PERÇUE (0 à 10) →', mapX + mapW / 2, mapY + mapH + 62);
+
+      ctx.save();
+      ctx.translate(42, mapY + mapH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('PRIX (0 à 10) →', 0, 0);
+      ctx.restore();
+
+      // Dessin des marques placées
+      for (const [id, pos] of placedPositions.entries()) {
+        const brand = brands.find((b) => b.id === id);
+        if (!brand) continue;
+
+        const cx = mapX + (pos.quality / 10) * mapW;
+        const cy = mapY + mapH - (pos.price / 10) * mapH;
+
+        const boxSize = 54;
+        ctx.save();
+        ctx.shadowColor = 'rgba(15, 23, 42, 0.16)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = '#ffffff';
+        roundRect(ctx, cx - boxSize / 2, cy - boxSize / 2, boxSize, boxSize, 12);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        roundRect(ctx, cx - boxSize / 2, cy - boxSize / 2, boxSize, boxSize, 12);
+        ctx.stroke();
+
+        try {
+          const img = await svgToImage(brand.svg);
+          ctx.drawImage(img, cx - 22, cy - 22, 44, 44);
+        } catch (err) {
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(brand.name.slice(0, 6), cx, cy + 4);
+        }
+
+        const label = optCoordsEl.checked
+          ? `${brand.name} (${pos.quality.toFixed(1)} ; ${pos.price.toFixed(1)})`
+          : brand.name;
+
+        ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+        const textW = ctx.measureText(label).width + 14;
+        const labelY = cy + boxSize / 2 + 6;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        roundRect(ctx, cx - textW / 2, labelY, textW, 22, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, cx, labelY + 15);
+      }
+
+      return canvas;
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function getFileBaseName() {
+      const name = document.getElementById('student-name').value.trim();
+      const clean = name
+        ? name.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')
+        : 'eleve';
+      return `diagramme-perception-${clean}`;
+    }
+
+    // Bouton Télécharger PNG
+    document.getElementById('btn-png').addEventListener('click', async () => {
+      const canvas = await renderExportCanvas();
+      const link = document.createElement('a');
+      link.download = `${getFileBaseName()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Bouton Télécharger PDF
+    document.getElementById('btn-pdf').addEventListener('click', async () => {
+      try {
+        if (window.jspdf && window.jspdf.jsPDF) {
+          const canvas = await renderExportCanvas();
+          const imgData = canvas.toDataURL('image/png');
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+          const pageW = pdf.internal.pageSize.getWidth();
+          const pageH = pdf.internal.pageSize.getHeight();
+          const ratio = Math.min((pageW - 16) / canvas.width, (pageH - 16) / canvas.height);
+          const imgW = canvas.width * ratio;
+          const imgH = canvas.height * ratio;
+          pdf.addImage(imgData, 'PNG', (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH);
+          pdf.save(`${getFileBaseName()}.pdf`);
+        } else {
+          window.print();
+        }
+      } catch (e) {
+        window.print();
+      }
+    });
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    // Initialisation
+    initTicks();
+    renderAll();
+  </script>
+</body>
+</html>
